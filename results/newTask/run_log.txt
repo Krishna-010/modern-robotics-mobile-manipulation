@@ -1,0 +1,16 @@
+$ python src/run_new_task.py
+Controller: feedforward + P
+Kp = 2.0 * I
+Ki = 0
+
+New task:
+Cube initial: x=1.0, y=0.5, theta=0
+Cube goal: x=-0.5, y=-1.0, theta=pi/2
+
+Initial error norm: 0.8986435747651158
+Error at 2.5 s: 0.00574437344988304
+Error at end of segment 1: 3.835900627809654e-05
+Maximum error norm: 0.8986435747651158
+Final error norm: 0.00020717722863061334
+
+CSV: results/newTask/newTask.csv

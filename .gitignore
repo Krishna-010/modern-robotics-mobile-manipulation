@@ -2,3 +2,14 @@
 __pycache__/
 *.pyc
 .vscode/
+
+# Coursera submission package
+submission/
+modern_robotics_capstone_submission.zip
+
+# Development-only result sets
+results/final_feedforward/
+results/newTask_unlimited/
+
+# Large CoppeliaSim recordings
+results/*/*.mp4

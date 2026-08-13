@@ -1,0 +1,14 @@
+$ python src/run_overshoot.py
+Controller: feedforward + PI
+Kp = 2.0 * I
+Ki = 4.0 * I
+
+Initial error norm: 0.8986435747651158
+Error at 1.0 s: 0.24575616407634412
+Error at 2.0 s: 0.08951599138471357
+Error at 3.0 s: 0.04344369791801034
+Error at end of segment 1: 0.0065560459589552415
+Maximum error norm: 0.8986435747651158
+Final error norm: 2.3985406570444163e-05
+
+CSV: results/overshoot/overshoot.csv

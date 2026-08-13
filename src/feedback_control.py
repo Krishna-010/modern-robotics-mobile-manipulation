@@ -47,6 +47,14 @@ BLIST = np.array([
     [0.0,   0.0,      0.0,      0.0,     0.0]
 ])
 
+PREFERRED_ARM = np.array([
+    0.0,
+    0.0,
+    0.2,
+    -1.6,
+    0.0
+])
+
 def chassis_transform(phi, x, y):
     """
     Return Tsb, the chassis frame {b}
@@ -256,3 +264,181 @@ def calculate_controls(Je, V):
     """
 
     return np.linalg.pinv(Je) @ V
+
+def test_joint_limits(arm_angles):
+    """
+    Return a boolean array indicating which arm joints
+    violate the chosen joint limits.
+    """
+
+    joint_min = np.array([
+        -np.inf,   # J1
+        -2.0,      # J2
+        -2.8,      # J3
+        -2.8,      # J4
+        -np.inf    # J5
+    ])
+
+    joint_max = np.array([
+        np.inf,    # J1
+        0.8,       # J2
+        0.8,       # J3
+        -0.2,      # J4
+        np.inf     # J5
+    ])
+
+    return (arm_angles < joint_min) | (arm_angles > joint_max)
+
+def test_joint_limits(arm_angles):
+    """
+    Check arm joint limits measured from CoppeliaSim Scene 3.
+
+    Returns:
+        Boolean array where True means the joint
+        is outside its allowed range.
+    """
+
+    joint_min = np.array([
+        -2.932,   # J1
+        -1.117,   # J2
+        -2.500,   # J3
+        -1.780,   # J4
+        -2.890    # J5
+    ])
+
+    joint_max = np.array([
+        2.932,    # J1
+        1.553,    # J2
+        2.500,    # J3
+        1.780,    # J4
+        2.890     # J5
+    ])
+
+    return (
+        (arm_angles < joint_min)
+        | (arm_angles > joint_max)
+    )
+
+def weighted_mobile_pseudoinverse(
+    Je,
+    wheel_scale=10.0,
+    rcond=1e-3
+):
+    """
+    Weighted generalized inverse for the mobile manipulator.
+
+    wheel_scale > 1 makes wheel motion comparatively
+    cheaper than arm motion, encouraging use of the base.
+    """
+
+    scales = np.array([
+        wheel_scale,
+        wheel_scale,
+        wheel_scale,
+        wheel_scale,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+    ])
+
+    S = np.diag(scales)
+
+    return (
+        S
+        @ np.linalg.pinv(
+            Je @ S,
+            rcond=rcond
+        )
+    )
+
+def calculate_controls_with_joint_limits(
+    Je,
+    V,
+    arm_angles,
+    dt,
+    centering_gain=2.0,
+    pinv_rcond=1e-3
+):
+    """
+    Mobile-manipulator control with:
+      1. end-effector tracking
+      2. null-space posture control
+      3. predictive hard joint-limit avoidance
+      4. singular-value tolerance
+    """
+
+    Je_limited = Je.copy()
+
+    disabled_joints = np.zeros(
+        5,
+        dtype=bool
+    )
+
+    for _ in range(6):
+
+        Je_pinv = np.linalg.pinv(
+            Je_limited,
+            rcond=pinv_rcond
+        )
+
+        # Primary task
+        primary_controls = Je_pinv @ V
+
+        # Secondary posture task
+        preferred_controls = np.zeros(9)
+
+        preferred_controls[4:9] = (
+            centering_gain
+            * (PREFERRED_ARM - arm_angles)
+        )
+
+        preferred_controls[4:9][
+            disabled_joints
+        ] = 0.0
+
+        # Null-space projector
+        null_space = (
+            np.eye(9)
+            - Je_pinv @ Je_limited
+        )
+
+        controls = (
+            primary_controls
+            + null_space @ preferred_controls
+        )
+
+        # Predict next arm pose
+        predicted_arm = (
+            arm_angles
+            + controls[4:9] * dt
+        )
+
+        violated = test_joint_limits(
+            predicted_arm
+        )
+
+        new_violations = (
+            violated
+            & ~disabled_joints
+        )
+
+        if not np.any(new_violations):
+            return controls
+
+        # Disable any newly offending joints
+        for joint_index in np.where(
+            new_violations
+        )[0]:
+
+            Je_limited[
+                :,
+                4 + joint_index
+            ] = 0.0
+
+            disabled_joints[
+                joint_index
+            ] = True
+
+    return controls
