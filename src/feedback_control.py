@@ -54,6 +54,23 @@ PREFERRED_ARM = np.array([
     -1.6,
     0.0
 ])
+# Arm joint limits measured from the interactive
+# KUKA youBot model in CoppeliaSim Scene 3.
+JOINT_MIN = np.array([
+    -2.932,   # J1
+    -1.117,   # J2
+    -2.500,   # J3
+    -1.780,   # J4
+    -2.890    # J5
+])
+
+JOINT_MAX = np.array([
+     2.932,   # J1
+     1.553,   # J2
+     2.500,   # J3
+     1.780,   # J4
+     2.890    # J5
+])
 
 def chassis_transform(phi, x, y):
     """
@@ -267,56 +284,26 @@ def calculate_controls(Je, V):
 
 def test_joint_limits(arm_angles):
     """
-    Return a boolean array indicating which arm joints
-    violate the chosen joint limits.
+    Check the arm configuration against the joint limits
+    measured from CoppeliaSim Scene 3.
+
+    Parameters
+    ----------
+    arm_angles : array-like, shape (5,)
+        Current or predicted youBot arm joint angles.
+
+    Returns
+    -------
+    violations : ndarray of bool, shape (5,)
+        True for each joint that lies outside its
+        allowed range.
     """
 
-    joint_min = np.array([
-        -np.inf,   # J1
-        -2.0,      # J2
-        -2.8,      # J3
-        -2.8,      # J4
-        -np.inf    # J5
-    ])
-
-    joint_max = np.array([
-        np.inf,    # J1
-        0.8,       # J2
-        0.8,       # J3
-        -0.2,      # J4
-        np.inf     # J5
-    ])
-
-    return (arm_angles < joint_min) | (arm_angles > joint_max)
-
-def test_joint_limits(arm_angles):
-    """
-    Check arm joint limits measured from CoppeliaSim Scene 3.
-
-    Returns:
-        Boolean array where True means the joint
-        is outside its allowed range.
-    """
-
-    joint_min = np.array([
-        -2.932,   # J1
-        -1.117,   # J2
-        -2.500,   # J3
-        -1.780,   # J4
-        -2.890    # J5
-    ])
-
-    joint_max = np.array([
-        2.932,    # J1
-        1.553,    # J2
-        2.500,    # J3
-        1.780,    # J4
-        2.890     # J5
-    ])
+    arm_angles = np.asarray(arm_angles)
 
     return (
-        (arm_angles < joint_min)
-        | (arm_angles > joint_max)
+        (arm_angles < JOINT_MIN)
+        | (arm_angles > JOINT_MAX)
     )
 
 def weighted_mobile_pseudoinverse(
