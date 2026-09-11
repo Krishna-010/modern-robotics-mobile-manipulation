@@ -10,9 +10,9 @@ Three final controller cases were implemented:
 
 | Case | Controller | Behavior |
 |---|---|---|
-| **Best** | Feedforward + P | Smooth convergence with minimal overshoot |
+| **Best** | Feedforward + P | Tracking-focused baseline; no joint-limit enforcement |
 | **Overshoot** | Feedforward + PI | Deliberate damped oscillation before convergence |
-| **New Task** | Feedforward + P + joint-limit avoidance | Custom cube task with improved arm posture |
+| **New Task** | Feedforward + P + joint-limit avoidance | Custom cube task with predictive limit checking and posture control |
 
 ## Results
 
@@ -23,6 +23,9 @@ Three final controller cases were implemented:
 - Initial error norm: `0.8986`
 - Error at end of first trajectory segment: `3.34e-05`
 - Final error norm: approximately `1.02e-04`
+> **Joint-limit note:** The Best controller is a tracking-focused
+> baseline and does not enforce arm joint limits. Joint-limit
+> avoidance is implemented separately in the New Task controller.
 
 ![Best controller tracking error](results/best/Xerr_plot.png)
 
@@ -227,6 +230,10 @@ With feedback enabled, the controller drives the error toward zero before the gr
 During development of the custom task, unrestricted pseudoinverse control produced mathematically valid end-effector tracking but physically undesirable arm configurations.
 
 To improve the motion, an enhanced controller was implemented.
+
+The joint-limit avoidance logic described below is used by
+`run_new_task.py`. The Best and Overshoot cases use the standard
+unconstrained Jacobian-pseudoinverse control path.
 
 ### Predictive Joint-Limit Checking
 
